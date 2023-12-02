@@ -21,6 +21,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 // Import Mini Game
 import MiniGame from './MiniGame';
 
+import { BackHandler, Alert, AppState, Platform } from 'react-native';
+
 type Product = {
   id: number;
   title: string;
@@ -45,22 +47,49 @@ const App: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
 
+  // Show modal before user exit application
+  useEffect(() => {
+    const handleBackPress = () => {
+      Alert.alert('Exit Storegg?', 'Are you sure want to close Storegg?', [
+        {
+          text: 'Cancel',
+          onPress: () => null,
+          style: 'cancel',
+        },
+        {
+          text: 'Exit',
+          onPress: () => Platform.OS === 'android' ? BackHandler.exitApp() : undefined,
+        },
+      ]);
+      return true;
+    };
+
+    const backHandler = Platform.OS === 'android'
+      ? BackHandler.addEventListener('hardwareBackPress', handleBackPress)
+      : undefined;
+
+    return () => {
+      if (Platform.OS === 'android' && backHandler) {
+        BackHandler.removeEventListener('hardwareBackPress', handleBackPress);
+      }
+    };
+  }, []);
+
+  // Handle gacha and add gacha prize when completed
   const handleGachaComplete = (prizeValue: number) => {
-    // Update the coins when the gacha is complete
     setMyCoins((prevCoins) => prevCoins + prizeValue);
   };
 
   // Add navigation state and functions
   const [navigation, setNavigation] = useState<any>(null);
 
-  
+  // Fetch data from API
   const fetchData = async () => {
     try {
       const response = await fetch('https://fakestoreapi.com/products');
       const data = await response.json();
       
       if (Array.isArray(data)) {
-        // Ensure that data is an array before updating the state
         setProducts((prevProducts: Product[]) => [...prevProducts, ...data]);
       } else {
         console.error('Invalid data format:', data);
@@ -74,16 +103,18 @@ const App: React.FC = () => {
     fetchData();
   }, []);
   
+  // Toggle Modal
   const toggleModal = () => {
     setModalVisible(!isModalVisible);
   };  
 
+  // Toggle view mode (list or grid view)
   const toggleViewMode = () => {
     setViewMode((prevMode) => (prevMode === 'list' ? 'grid' : 'list'));
   };
 
+  // Navigate to MyProduct screen and pass the purchased item as a parameter
   const navigateToMyProduct = (purchasedItem: Product) => {
-    // Navigate to MyProduct screen and pass the purchased item as a parameter
     navigation.navigate('MyProduct', { purchasedItem });
   };
 
@@ -92,53 +123,48 @@ const App: React.FC = () => {
     setNavigation(nav);
   };
 
+  // Navigate to the "ItemDetail" screen with the selected item
   const navigateToItemDetail = (item: Product, isPurchasedItem: boolean = false) => {
-    // Navigate to the "ItemDetail" screen with the selected item
     navigation.navigate('ItemDetail', { item, isPurchasedItem });
   };
 
+  // Item detail screen
   const ItemDetailScreen = ({ route, navigation }: { route: any; navigation: any }) => {
     const { item, isPurchasedItem } = route.params;
   
-    // Dynamically set the header title to the item name
     useEffect(() => {
       navigation.setOptions({ title: item.title });
     }, [item, navigation]);
   
     const addToMyProduct = () => {
-      // Placeholder logic for adding the item to myPurchasedItems
       setMyPurchasedItems((prevItems) => [...prevItems, item]);
-      // Deduct the item price from myCoins
       setMyCoins((prevCoins) => prevCoins - item.price);
     };
   
     const sellItem = (item: Product) => {
-      // Find the index of the first occurrence of the item in the list
       const index = myPurchasedItems.findIndex((purchased) => purchased.id === item.id);
       
       if (index !== -1) {
-        // Remove only one instance of the item
         const updatedItems = [...myPurchasedItems];
         updatedItems.splice(index, 1);
+
         setMyPurchasedItems(updatedItems);
-    
-        // Add the item price to myCoins when selling
+        
         setMyCoins((prevCoins) => prevCoins + item.price);
       }
     };
   
     const handleTransaction = () => {
       if (isPurchasedItem) {
-        // Handle sell logic here
         sellItem(item);
-        const updatedCoins = myCoins + item.price; // Calculate the updated coin value
-        setMyCoins(updatedCoins); // Update myCoins state
+        const updatedCoins = myCoins + item.price; 
+        setMyCoins(updatedCoins);
         setModalMessage(`${item.title} was sold successfully! Your current balance is ${updatedCoins.toFixed(0)}.`);
       } else {
         // Handle buy logic here
         addToMyProduct();
-        const updatedCoins = myCoins - item.price; // Calculate the updated coin value
-        setMyCoins(updatedCoins); // Update myCoins state
+        const updatedCoins = myCoins - item.price; 
+        setMyCoins(updatedCoins); 
         setModalMessage(`${item.title} was bought successfully! Your current balance is ${updatedCoins.toFixed(0)}.`);
       }
       toggleModal();
@@ -189,11 +215,11 @@ const App: React.FC = () => {
   };
   
 
+  // My product screen
   const MyProductScreen = ({ route, navigation }: { route: any; navigation: any }) => {
     const { purchasedItem } = route.params;
   
     const sellItem = (item: Product) => {
-      // Remove the item from the list of purchased items
       setMyPurchasedItems((prevItems) => {
         const updatedItems = prevItems.filter((purchased) => purchased.id !== item.id);
         return updatedItems;
@@ -208,23 +234,20 @@ const App: React.FC = () => {
             <View style={styles.productDetails}>
               <Text style={styles.productName}>{item.title}</Text>
               <Text style={styles.productPrice}>Price: {item.price} Coins</Text>
-              {/* Add other product details */}
             </View>
           </View>
         </View>
       </TouchableOpacity>
     );
 
-    // Use useLayoutEffect to set options
     useLayoutEffect(() => {
       navigation.setOptions({
-        title: 'Back', // Change the header title
+        title: 'My Products',
       });
     }, [navigation]);
   
     return (
       <SafeAreaView style={styles.backgroundStyle}>
-        {/* Display the list of purchased items */}
         <ScrollView contentContainerStyle={styles.myProductContainer}>
           <Text style={styles.myProductHeader}>Purchased Items</Text>
           {myPurchasedItems.map((item) => renderMyProductItem({ item }))}
@@ -242,7 +265,6 @@ const App: React.FC = () => {
             <View style={styles.productDetails}>
               <Text style={styles.productName}>{item.title}</Text>
               <Text style={styles.productPrice}>Price: {item.price} Coins</Text>
-              {/* Add other product details */}
             </View>
           )}
         </View>
@@ -259,6 +281,7 @@ const App: React.FC = () => {
           {(props) => (
             <SafeAreaView style={styles.backgroundStyle}>
               <StatusBar barStyle="dark-content" />
+
               <View style={styles.searchContainer}>
                 <View style={styles.searchBoxContainer}>
                   <SearchIcon style={styles.searchIcon} />
@@ -275,10 +298,8 @@ const App: React.FC = () => {
                   style={styles.myProductButton}>
                   <Text style={styles.myProductText}>My Product &gt;</Text>
                 </TouchableOpacity>
-
               </View>
 
-              {/* My Coins Display */}
               <View style={styles.myCoinsContainer}>
               <Text style={styles.myCoinsValue}>{myCoins.toFixed(0)}</Text>
                 <Text style={styles.myCoinsText}>My Coins</Text>
@@ -350,7 +371,7 @@ const styles = StyleSheet.create({
   searchBox: {
     flex: 1,
     height: 50,
-    fontSize: 17, // Adjust this value to change the font size
+    fontSize: 17,
     borderColor: 'grey',
     borderRadius: 10,
     backgroundColor: 'white',
@@ -496,7 +517,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   itemDetailContainer: {
-    width: '100%', // Ensure full width
+    width: '100%',
     height: '100%',
     alignItems: 'center',
     padding: 60,
