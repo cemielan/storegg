@@ -450,14 +450,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    padding: 25,
     backgroundColor: 'white',
-    marginTop: -35,
+    marginTop: -10,
+    marginLeft: 20,
   },
   gridItem: {
     flex: 1,
     width: '75%',
-    padding: 5,
     margin: 15,
   },
   productItemContainer: {
@@ -474,8 +473,8 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   productImage: {
-    width: 55,
-    height: 55,
+    width: 80,
+    height: 80,
     resizeMode: 'contain',
     marginRight: 16,
   },
