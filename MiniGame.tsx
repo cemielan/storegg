@@ -50,7 +50,7 @@ const MiniGame: React.FC<{ onGachaComplete: (coins: number) => void }> = ({ onGa
       ) : (
         <View style={styles.gachaResultContainer}>
           <Text style={styles.congratulationText}>Congratulations!</Text>
-          <Text style={styles.resultText}>You got a {gachaResult?.type} Coin!</Text>
+          <Text style={styles.resultText}>You got a {gachaResult?.type} coin!</Text>
           <Image
             source={
               gachaResult?.type === 'bronze'
@@ -76,6 +76,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'white',
   },
   CoinInfoContainer: {
     flexDirection: 'row',
@@ -97,9 +98,9 @@ const styles = StyleSheet.create({
   },
   clickText: {
     fontSize: 25,
+    fontWeight: '400',
     width: 320,
     color: 'black',
-    fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
     alignSelf: 'center',
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
   },
   gachaResultContainer: {
     alignItems: 'center',
-    marginTop: -50,
+    marginTop: -15,
   },
   congratulationText: {
     fontSize: 25,
@@ -122,7 +123,9 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   resultText: {
-    fontSize: 18,
+    fontSize: 19,
+    fontWeight: '500',
+    color: 'black',
     marginBottom: 20,
   },
   coinImage: {
@@ -134,7 +137,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: 'black',
-    marginTop: 10,
+    marginTop: 20,
     width: 280,
     textAlign: 'center',
   },
