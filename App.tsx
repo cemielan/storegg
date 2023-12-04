@@ -21,9 +21,17 @@ import { createStackNavigator } from '@react-navigation/stack';
 // Import Mini Game
 import MiniGame from './MiniGame';
 
+// Import for Exit Modal
 import { BackHandler, Alert, AppState, Platform } from 'react-native';
 
-type Product = {
+// Import for Redux-Persist
+import { store, persistor } from './redux/store';
+import { addToMyProducts, removeFromMyProducts } from './redux/actions';
+import { PersistGate } from 'redux-persist/integration/react';
+import { Provider } from 'react-redux';
+
+
+export type Product = {
   id: number;
   title: string;
   image: string;
@@ -84,22 +92,22 @@ const App: React.FC = () => {
   const [navigation, setNavigation] = useState<any>(null);
 
   // Fetch data from API
-  const fetchData = async () => {
-    try {
-      const response = await fetch('https://fakestoreapi.com/products');
-      const data = await response.json();
-      
-      if (Array.isArray(data)) {
-        setProducts((prevProducts: Product[]) => [...prevProducts, ...data]);
-      } else {
-        console.error('Invalid data format:', data);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-  };
-  
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('https://fakestoreapi.com/products');
+        const data = await response.json();
+  
+        if (Array.isArray(data)) {
+          setProducts((prevProducts: Product[]) => [...prevProducts, ...data]);
+        } else {
+          console.error('Invalid data format:', data);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+  
     fetchData();
   }, []);
   
@@ -138,6 +146,7 @@ const App: React.FC = () => {
   
     const addToMyProduct = () => {
       setMyPurchasedItems((prevItems) => [...prevItems, item]);
+      store.dispatch(addToMyProducts(item));
       setMyCoins((prevCoins) => prevCoins - item.price);
     };
   
@@ -145,11 +154,13 @@ const App: React.FC = () => {
       const index = myPurchasedItems.findIndex((purchased) => purchased.id === item.id);
       
       if (index !== -1) {
+        // Dispatch the action to remove the item from myPurchasedItems
+        store.dispatch(removeFromMyProducts(item.id));
+    
         const updatedItems = [...myPurchasedItems];
         updatedItems.splice(index, 1);
-
         setMyPurchasedItems(updatedItems);
-        
+    
         setMyCoins((prevCoins) => prevCoins + item.price);
       }
     };
@@ -273,74 +284,78 @@ const App: React.FC = () => {
   );
 
   return (
-    <NavigationContainer ref={setNavigationRef}>
-      <Stack.Navigator>
-        <Stack.Screen
-          name="Home"
-          options={{ headerShown: false }}>
-          {(props) => (
-            <SafeAreaView style={styles.backgroundStyle}>
-              <StatusBar barStyle="dark-content" />
+    <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        <NavigationContainer ref={setNavigationRef}>
+          <Stack.Navigator>
+            <Stack.Screen
+              name="Home"
+              options={{ headerShown: false }}>
+              {(props) => (
+                <SafeAreaView style={styles.backgroundStyle}>
+                  <StatusBar barStyle="dark-content" />
 
-              <View style={styles.searchContainer}>
-                <View style={styles.searchBoxContainer}>
-                  <SearchIcon style={styles.searchIcon} />
-                  <TextInput
-                    style={styles.searchBox}
-                    placeholder="Search Product ..."
-                    value={searchText}
-                    onChangeText={(text) => setSearchText(text)}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  onPress={() => navigateToMyProduct(products[0])}
-                  style={styles.myProductButton}>
-                  <Text style={styles.myProductText}>My Product &gt;</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.myCoinsContainer}>
-              <Text style={styles.myCoinsValue}>{myCoins.toFixed(0)}</Text>
-                <Text style={styles.myCoinsText}>My Coins</Text>
-              </View>
-
-              <View style={styles.bottomContainer}>               
-                <View style={styles.headerContainer}>
-                  <Text style={styles.headerText}>Available Products</Text>
-                  <TouchableOpacity onPress={toggleViewMode}>
-                    <View style={styles.toggleButton}>
-                      {viewMode === 'list' ? <ListViewIcon /> : <GridViewIcon />}
+                  <View style={styles.searchContainer}>
+                    <View style={styles.searchBoxContainer}>
+                      <SearchIcon style={styles.searchIcon} />
+                      <TextInput
+                        style={styles.searchBox}
+                        placeholder="Search Product ..."
+                        value={searchText}
+                        onChangeText={(text) => setSearchText(text)}
+                      />
                     </View>
+
+                    <TouchableOpacity
+                      onPress={() => navigateToMyProduct(products[0])}
+                      style={styles.myProductButton}>
+                      <Text style={styles.myProductText}>My Products &gt;</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.myCoinsContainer}>
+                  <Text style={styles.myCoinsValue}>{myCoins.toFixed(0)}</Text>
+                    <Text style={styles.myCoinsText}>My coins</Text>
+                  </View>
+
+                  <View style={styles.bottomContainer}>               
+                    <View style={styles.headerContainer}>
+                      <Text style={styles.headerText}>Available Products</Text>
+                      <TouchableOpacity onPress={toggleViewMode}>
+                        <View style={styles.toggleButton}>
+                          {viewMode === 'list' ? <ListViewIcon /> : <GridViewIcon />}
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+
+                    <ScrollView
+                      contentContainerStyle={viewMode === 'grid' ? styles.gridContainer : null}>
+                      {products.map((item) => renderProductItem({ item }))}
+                    </ScrollView>               
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.fabButton}
+                    onPress={() => navigation.navigate('MiniGame')}
+                    activeOpacity={0.7}>
+                    <Image source={require('./assets/egg-full.png')} style={styles.fabImage} />
                   </TouchableOpacity>
-                </View>
 
-                <ScrollView
-                  contentContainerStyle={viewMode === 'grid' ? styles.gridContainer : null}>
-                  {products.map((item) => renderProductItem({ item }))}
-                </ScrollView>               
-              </View>
+                </SafeAreaView>
+              )}
+            </Stack.Screen>
 
-              <TouchableOpacity
-                style={styles.fabButton}
-                onPress={() => navigation.navigate('MiniGame')}
-                activeOpacity={0.7}>
-                <Image source={require('./assets/egg-full.png')} style={styles.fabImage} />
-              </TouchableOpacity>
-
-            </SafeAreaView>
-          )}
-        </Stack.Screen>
-
-        <Stack.Screen name="ItemDetail" component={ItemDetailScreen} />
-        <Stack.Screen name="MyProduct" component={MyProductScreen} />
-        
-        <Stack.Screen name="MiniGame">
-          {(props) => <MiniGame onGachaComplete={handleGachaComplete} />}
-        </Stack.Screen>
-        
-      </Stack.Navigator>
-    </NavigationContainer>
+            <Stack.Screen name="ItemDetail" component={ItemDetailScreen} />
+            <Stack.Screen name="MyProduct" component={MyProductScreen} />
+            
+            <Stack.Screen name="MiniGame">
+              {(props) => <MiniGame onGachaComplete={handleGachaComplete} />}
+            </Stack.Screen>
+            
+          </Stack.Navigator>
+        </NavigationContainer>
+      </PersistGate>
+    </Provider>
   );
 };
 
@@ -352,10 +367,8 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'column',
     padding: 25,
-    borderBottomWidth: 1,
-    borderBottomColor: '#d8bfd8',
-    backgroundColor: '#d8bfd8',
-    height: 165,
+    backgroundColor: '#C3B1E1',
+    height: 175,
   },
   searchBoxContainer: {
     flexDirection: 'row',
@@ -390,13 +403,14 @@ const styles = StyleSheet.create({
   myProductText: {
     fontSize: 18,
     color: 'black',
+    fontWeight: 'bold'
   },
   myCoinsContainer: {
     flexDirection: 'column',
     alignItems: 'flex-end',
     padding: 10,
     marginLeft: 275,
-    marginTop: -60,
+    marginTop: -70,
     zIndex: 1,
     borderRadius: 10,
     width: '30%',
@@ -409,8 +423,8 @@ const styles = StyleSheet.create({
   },
   myCoinsValue: {
     fontSize: 30,
-    fontWeight: 'bold',
-    color: 'purple',
+    fontWeight: '900',
+    color: '#8A2BE2',
   },
   myCoinsText: {
     fontSize: 16,
@@ -422,13 +436,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     borderColor: 'white',
-    marginTop: -5,
+    marginTop: -30,
     marginBottom: 40,
   },
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 10,
+    padding: 25,
     paddingHorizontal: 25,
     alignItems: 'center',
     marginTop: 10,
@@ -557,7 +571,7 @@ const styles = StyleSheet.create({
     color: 'black',
   },
   buyButton: {
-    backgroundColor: 'purple',
+    backgroundColor: '#C3B1E1',
     alignItems: 'center',
     marginTop: 50,
     width: 340,
