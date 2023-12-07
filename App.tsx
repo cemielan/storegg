@@ -97,7 +97,7 @@ const App: React.FC = () => {
       try {
         const response = await fetch('https://fakestoreapi.com/products');
         const data = await response.json();
-  
+    
         if (Array.isArray(data)) {
           setProducts((prevProducts: Product[]) => [...prevProducts, ...data]);
         } else {
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
     color: 'black',
   },
   buyButton: {
-    backgroundColor: '#C3B1E1',
+    backgroundColor: '#8F00FF',
     alignItems: 'center',
     marginTop: 50,
     width: 340,
